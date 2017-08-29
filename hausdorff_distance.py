@@ -12,9 +12,8 @@ def get_poly_from_line(line):
 def main():
 	# Import polynomials
 	classes = []
-	with open("2res_classes.txt", "r") as file:
-		for line in file:
-			classes.append(get_poly_from_line(line))
+	with open("in/2res_classes.json", "r") as file:
+		classes = json.loads(file.read())["classes"]
 	
 	# Hausdorff distance between classes
 	perms = list(permutations(range(5)))
@@ -29,7 +28,7 @@ def main():
 				classB_table = [bt.polynomial_to_rule_table(b, 5) for b in classB_set]
 				haus_dist = bt.hausdorff_distance_sets(classA_table, classB_table)
 				output_dict.append({"first": classA, "second": classB, "distance": haus_dist})
-	with open("hausdorff_distance.json", "w") as file:
+	with open("out/hausdorff_distance.json", "w") as file:
 		jsondata = json.dumps({"distances":output_dict}, indent=4)
 		file.write(jsondata)
 	
@@ -46,7 +45,7 @@ def main():
 		diameter_data = {"class": classA, "diameter":diameter}
 		output_dict.append(diameter_data)
 		
-	with open("diameter.json", "w") as file:
+	with open("out/diameter.json", "w") as file:
 		jsondata = json.dumps({"diameters":output_dict}, indent=4)
 		file.write(jsondata)
 	
