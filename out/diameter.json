@@ -1,6 +1,7 @@
 {
     "diameters": [
         {
+            "diameter": 16,
             "class": [
                 [
                     1
@@ -18,10 +19,10 @@
                     0,
                     1
                 ]
-            ],
-            "diameter": 16
+            ]
         },
         {
+            "diameter": 20,
             "class": [
                 [
                     1
@@ -36,10 +37,10 @@
                     0,
                     2
                 ]
-            ],
-            "diameter": 20
+            ]
         },
         {
+            "diameter": 8,
             "class": [
                 [
                     1
@@ -58,10 +59,10 @@
                     0,
                     2
                 ]
-            ],
-            "diameter": 8
+            ]
         },
         {
+            "diameter": 12,
             "class": [
                 [
                     1
@@ -83,10 +84,10 @@
                     1,
                     2
                 ]
-            ],
-            "diameter": 12
+            ]
         },
         {
+            "diameter": 20,
             "class": [
                 [
                     2
@@ -106,10 +107,10 @@
                     1,
                     3
                 ]
-            ],
-            "diameter": 20
+            ]
         },
         {
+            "diameter": 16,
             "class": [
                 [
                     0
@@ -135,10 +136,10 @@
                     1,
                     4
                 ]
-            ],
-            "diameter": 16
+            ]
         },
         {
+            "diameter": 8,
             "class": [
                 [
                     1
@@ -165,10 +166,10 @@
                     2,
                     3
                 ]
-            ],
-            "diameter": 8
+            ]
         },
         {
+            "diameter": 20,
             "class": [
                 [
                     0
@@ -189,8 +190,7 @@
                     0,
                     1
                 ]
-            ],
-            "diameter": 20
+            ]
         }
     ]
 }
