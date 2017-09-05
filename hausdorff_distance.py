@@ -2,7 +2,7 @@ import ast
 import json
 import booleantools
 from booleantools import BooleanFunction
-from itertools import permutations
+from itertools import permutations, combinations
 
  
 def get_poly_from_line(line):
@@ -20,13 +20,11 @@ def main():
 	perms = list(permutations(range(5)))
 	output_dict = []
 	
-	for classA in classes:
-		for classB in classes:
-			if classA != classB:
-				classA_set = booleantools.perms_orbit_polynomial(perms, classA)
-				classB_set = booleantools.perms_orbit_polynomial(perms, classB)
-				haus_dist = booleantools.hausdorff_distance_sets(classA_set, classB_set)
-				output_dict.append({"first": classA.listform, "second": classB.listform, "distance": haus_dist})
+	for classA, classB in combinations(classes, 2):
+		classA_set = booleantools.perms_orbit_polynomial(perms, classA)
+		classB_set = booleantools.perms_orbit_polynomial(perms, classB)
+		haus_dist = booleantools.hausdorff_distance_sets(classA_set, classB_set)
+		output_dict.append({"first": classA.listform, "second": classB.listform, "distance": haus_dist})
 	with open("out/hausdorff_distance.json", "w") as file:
 		jsondata = json.dumps({"distances":output_dict}, indent=4)
 		file.write(jsondata)
