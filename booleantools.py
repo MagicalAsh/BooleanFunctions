@@ -12,10 +12,13 @@ class BooleanFunction:
 		return sum(self.tableform)
 		
 	def hamming_distance(self, other):
-		u = self.tableform
-		v = other.tableform
-		s = sum([delta(u[k],v[k])for k in range(len(u))])
-		return s
+		if hasattr(other, "__getitem__"): #If other is a list
+			return [self.hamming_distance(f) for f in other]
+		else: 
+			u = self.tableform
+			v = other.tableform
+			s = sum([delta(u[k],v[k])for k in range(len(u))])
+			return s
 		
 	def walsh_transform(self):
 		f = self.tableform
@@ -72,7 +75,7 @@ class BooleanFunction:
 		out = [apply_perm_to_monomial(perm, i) for i in self.listform]
 		return BooleanFunction(out, self.n)
 		
-	def __equals__(self,poly2):
+	def __eq__(self,poly2):
 		return frozenset([frozenset(i) for i in self.listform]) == frozenset([frozenset(j) for j in poly2.listform])
 
 	def __add__(self, other):
@@ -91,6 +94,9 @@ class BooleanFunction:
 			
 	def __str__(self):
 		return str(self.listform)
+	
+	def __repr__(self):
+		return "BooleanFunction(%s)" % (str(self))
 	
 	def update_rule_table(self):
 		rule_table_length = 2**self.n
@@ -196,7 +202,7 @@ def nonemptypowerset(iterable):
 def duplicate_free_list_polynomials(list_of_polys):
 	outlist = [] 
 	for poly in list_of_polys:
-		if not(True in [poly == test for test in outlist]):
+		if True not in [poly == poly_in_out for poly_in_out in outlist]:
 			outlist.append(poly)
 	return outlist
 
