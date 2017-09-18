@@ -27,21 +27,7 @@ def main():
 		output_dict.append({"first": classA.listform, "second": classB.listform, "distance": haus_dist})
 	with open("out/hausdorff_distance.json", "w") as file:
 		jsondata = json.dumps({"distances":output_dict}, indent=4)
-		file.write(jsondata)
-		
-	
-	for classA in classes:
-		for classB in classes:
-			classA_set = booleantools.perms_orbit_polynomial(perms, classA)
-			classB_set = booleantools.perms_orbit_polynomial(perms, classB)
-			
-			print("Classes %s and %s: " % (str(classA), str(classB)))
-			
-			for a in classA_set:
-				# find a's nearest neighbor in b
-				dist = booleantools.hausdorff_distance_point(a, classB_set)
-				print(dist)
-				
+		file.write(jsondata)				
 			
 	
 	
@@ -51,8 +37,9 @@ def main():
 	for classA in classes:
 		max_dist = 0;
 		classA_set = booleantools.perms_orbit_polynomial(perms, classA)
-		diameter = max([booleantools.hausdorff_distance_point(poly1, classA_set) for poly1 in classA_set])
-		diameter_data = {"class": classA.listform, "diameter":diameter}
+		diameter = max([classA.hamming_distance(f) for f in classA_set])
+		min_dist = booleantools.min_nonzero_dist(classA, classA_set)
+		diameter_data = {"class": classA.listform, "diameter":diameter, "min_nonzero_distance": min_dist}
 		output_dict.append(diameter_data)
 		
 	with open("out/diameter.json", "w") as file:

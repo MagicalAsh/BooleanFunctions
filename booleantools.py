@@ -54,7 +54,7 @@ class BooleanFunction:
 	#nonlinearity using Walsh transform
 	def nonlinearity(self,n):
 		f = self.tableform
-		return 2**(n-1) - 0.5*walsh_spectrum(f)
+		return 2**(n-1) - 0.5*self.walsh_spectrum()
 	
 	def evaluate_polynomial_at_point(self, x):
 		f = self.listform
@@ -137,7 +137,7 @@ def dec_to_bin(num,nbits):
 
 #delta = lambda x,y: x==y # NOTE: Boolean values are actually a subclass of integers, so True*3 == 3
 def delta(x,y):
-	return x == y
+	return x != y
 
 def hausdorff_distance_point(a,B):
 	"""
@@ -233,5 +233,14 @@ def test_function_in_equiv_classes(func,eq_classes):
 		func_in_eq_class = False
 		func_in_eq_class = [func == x for x in eq_class]
 		return func_in_eq_class
+		
+def min_nonzero_dist(poly1, classA):
+	dists = [poly1.hamming_distance(f) for f in classA]
+	min_nonzero = float("inf")
+	for dist in dists:
+		if dist != 0 and dist < min_nonzero:
+			min_nonzero = dist
+			
+	return dist
 
 
