@@ -12,7 +12,8 @@ pydocmd new
 echo "- BooleanFunction: boolean_functions.md << boolFunc.md" >> pydocmd.yml
 echo "- BooleanTools: boolean_tools.md << boolTools.md" >> pydocmd.yml
 sed -i "s/site_name.*/site_name: BooleanTools Documentation/g" pydocmd.yml
-
 pydocmd build
+
+echo "extra_javascript: [\"https://cdn.rawgit.com/mathjax/MathJax/2.7.1/MathJax.js\"]" >>mkdocs.yml
 
 
