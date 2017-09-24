@@ -43,7 +43,7 @@ class BooleanFunction:
 		else: 
 			u = self.tableform
 			v = other.tableform
-			s = sum([__delta(u[k],v[k])for k in range(len(u))])
+			s = sum([_delta(u[k],v[k])for k in range(len(u))])
 			return s
 		
 	def walsh_transform(self):
@@ -52,9 +52,9 @@ class BooleanFunction:
 		"""
 		f = self.tableform
 		nbits = int(log(len(f),2))
-		vecs = [__dec_to_bin(x,nbits) for x in range(len(f))]
+		vecs = [_dec_to_bin(x,nbits) for x in range(len(f))]
 		def Sf(w):
-		  return sum([(-1)**(f[x]^__dot___product(__dec_to_bin(x,nbits),w)) for x in range(0,len(f))])
+		  return sum([(-1)**(f[x]^_dot_product(_dec_to_bin(x,nbits),w)) for x in range(0,len(f))])
 		Sflist = [Sf(vec) for vec in vecs]
 		return Sflist
 
@@ -87,7 +87,7 @@ class BooleanFunction:
 		f = self.tableform
 		walsh_transform_f = self.walsh_transform()
 		nbits = int(log(len(f),2))
-		vectors_to_test = [__bin_to_dec(vec) for vec in weight_k_vectors(k,nbits)]
+		vectors_to_test = [_bin_to_dec(vec) for vec in weight_k_vectors(k,nbits)]
 		walsh_transform_at_weight_k = [walsh_transform_f[vec] for vec in vectors_to_test]
 		return walsh_transform_at_weight_k == [0]*len(vectors_to_test)
 
@@ -129,7 +129,7 @@ class BooleanFunction:
 		f = self.listform
 		value = 0
 		for monomial in f:
-			monomial_eval = __product([x[i] for i in monomial])
+			monomial_eval = _product([x[i] for i in monomial])
 			value += monomial_eval
 		if [] in f:
 			 value += 1
@@ -171,11 +171,11 @@ class BooleanFunction:
 		
 	def __mult__(self, other):
 		if isinstance(other, int ): #I do this explicitly because it's kinda weird otherwise
-			other = BooleanFunction(self.listform)
-			for monomial in other.listform:
+			newf = BooleanFunction(self.listform)
+			for monomial in newf.listform:
 				monomial.append(other)
-			other.n += 1
-			other.__update_rule_table()
+			newf.n += 1
+			newf.__update_rule_table()
 		else:
 			return None
 			
@@ -189,7 +189,7 @@ class BooleanFunction:
 		rule_table_length = 2**self.n
 		rule_table = [0]*rule_table_length
 		for k in range(rule_table_length):
-			point_to_evaluate = __dec_to_bin(k, self.n)
+			point_to_evaluate = _dec_to_bin(k, self.n)
 			rule_table[k] = self.evaluate_polynomial_at_point(point_to_evaluate)
 		self.tableform = rule_table
 		
@@ -201,13 +201,13 @@ class BooleanFunction:
 ##A basic binary-to-decimal converter.
 ##Could obviously be optimized to reduce exponentiation.
 
-def __bin_to_dec(num):
+def _bin_to_dec(num):
 	return sum([num[i]*2**i for i in range(len(num))])
 
 #A basic decimal-to-binary converter.
 #We need nbits in case padded 0's are needed at the front. 
 
-def __dec_to_bin(num,nbits):
+def _dec_to_bin(num,nbits):
 	new_num = num
 	bin = []
 	for j in range(nbits):
@@ -223,7 +223,7 @@ def __dec_to_bin(num,nbits):
 	return bin
 
 #__delta = lambda x,y: x==y # NOTE: Boolean values are actually a subclass of integers, so True*3 == 3
-def __delta(x,y):
+def _delta(x,y):
 
 	return x != y
 
@@ -244,9 +244,9 @@ def hausdorff_distance_sets(X,Y):
 	HD2 = hausdorff_semidistance_set(Y,X)
 	return max([HD1,HD2])
 	 
-def __dot___product(u,v):
+def _dot_product(u,v):
 	"""
-	Basic mod 2 dot __product.
+	Basic mod 2 dot product.
 	"""
 	s = sum(u[k]*v[k] for k in range(len(u)))
 	return s%2
@@ -263,7 +263,7 @@ def weight_k_vectors(k,nbits):
 		vector_set_to_return.append(vec_to_add)
 	return vector_set_to_return
 	
-def __product(x):
+def _product(x):
 	"""
 	Calculates the __product of all elements in $x$.
 	
@@ -276,7 +276,7 @@ def __product(x):
 	return reduce((lambda y,z : y*z), x)
 
 	
-def __powerset(iterable):
+def _powerset(iterable):
 	"""
 	Generates the __powerset of an iterable.
 	"""
@@ -288,7 +288,7 @@ def __powerset(iterable):
 			set_to_return.append(list(item))
 	return set_to_return
 
-def __nonempty_powerset(iterable):
+def _nonempty_powerset(iterable):
 	"""
 	Generates the __powerset of an interable, excluding the empty set.
 	"""
