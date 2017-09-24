@@ -1,6 +1,7 @@
 from functools import reduce
 from itertools import combinations,permutations
 from math import log
+from copy import deepcopy
 
 class BooleanFunction:
 	"""
@@ -15,16 +16,15 @@ class BooleanFunction:
 			n -- The number of variables, where n - 1 is the highest term in the list form.
 		"""
 		self.n = n
-		self.listform = listform
-		self.update_rule_table()
+		self.listform = deepcopy(listform)
+		self.__update_rule_table()
 	
 	def hamming_weight(self):
 		"""
 			Returns the Hamming Weight of this function.
 			
 			# Returns
-			
-			<float> The hamming weight of this function.
+				The hamming weight of this function.
 		"""
 		return sum(self.tableform)
 		
@@ -43,7 +43,7 @@ class BooleanFunction:
 		else: 
 			u = self.tableform
 			v = other.tableform
-			s = sum([delta(u[k],v[k])for k in range(len(u))])
+			s = sum([__delta(u[k],v[k])for k in range(len(u))])
 			return s
 		
 	def walsh_transform(self):
@@ -52,9 +52,9 @@ class BooleanFunction:
 		"""
 		f = self.tableform
 		nbits = int(log(len(f),2))
-		vecs = [dec_to_bin(x,nbits) for x in range(len(f))]
+		vecs = [__dec_to_bin(x,nbits) for x in range(len(f))]
 		def Sf(w):
-		  return sum([(-1)**(f[x]^dot_product(dec_to_bin(x,nbits),w)) for x in range(0,len(f))])
+		  return sum([(-1)**(f[x]^__dot___product(__dec_to_bin(x,nbits),w)) for x in range(0,len(f))])
 		Sflist = [Sf(vec) for vec in vecs]
 		return Sflist
 
@@ -87,7 +87,7 @@ class BooleanFunction:
 		f = self.tableform
 		walsh_transform_f = self.walsh_transform()
 		nbits = int(log(len(f),2))
-		vectors_to_test = [bin_to_dec(vec) for vec in weight_k_vectors(k,nbits)]
+		vectors_to_test = [__bin_to_dec(vec) for vec in weight_k_vectors(k,nbits)]
 		walsh_transform_at_weight_k = [walsh_transform_f[vec] for vec in vectors_to_test]
 		return walsh_transform_at_weight_k == [0]*len(vectors_to_test)
 
@@ -129,7 +129,7 @@ class BooleanFunction:
 		f = self.listform
 		value = 0
 		for monomial in f:
-			monomial_eval = product([x[i] for i in monomial])
+			monomial_eval = __product([x[i] for i in monomial])
 			value += monomial_eval
 		if [] in f:
 			 value += 1
@@ -139,21 +139,22 @@ class BooleanFunction:
 	def apply_permutation(self, perm):
 		"""
 		Applies a permutation to this function.
-		\[
+		\\\[
 			f^\sigma(x)
-		\]
+		\\\]
 		
 		where sigma is in one line notation.
 		
 		# Arguments
-			<list> perm - The permutation to apply, in one line notation. 
+			perm - The permutation to apply, in one line notation. 
 			
 		# Returns
-			<BooleanFunction> A boolean function where the permutation was applied.
+			A boolean function where the permutation was applied.
 		"""
 		def apply_perm_to_monomial(perm,monomial):
 			out = [perm[i] for i in monomial]
 			return out
+			
 	
 		out = [apply_perm_to_monomial(perm, i) for i in self.listform]
 		return BooleanFunction(out, self.n)
@@ -174,7 +175,7 @@ class BooleanFunction:
 			for monomial in other.listform:
 				monomial.append(other)
 			other.n += 1
-			other.update_rule_table()
+			other.__update_rule_table()
 		else:
 			return None
 			
@@ -184,11 +185,11 @@ class BooleanFunction:
 	def __repr__(self):
 		return "BooleanFunction(%s)" % (str(self))
 	
-	def update_rule_table(self):
+	def __update_rule_table(self):
 		rule_table_length = 2**self.n
 		rule_table = [0]*rule_table_length
 		for k in range(rule_table_length):
-			point_to_evaluate = dec_to_bin(k, self.n)
+			point_to_evaluate = __dec_to_bin(k, self.n)
 			rule_table[k] = self.evaluate_polynomial_at_point(point_to_evaluate)
 		self.tableform = rule_table
 		
@@ -200,13 +201,13 @@ class BooleanFunction:
 ##A basic binary-to-decimal converter.
 ##Could obviously be optimized to reduce exponentiation.
 
-def bin_to_dec(num):
+def __bin_to_dec(num):
 	return sum([num[i]*2**i for i in range(len(num))])
 
 #A basic decimal-to-binary converter.
 #We need nbits in case padded 0's are needed at the front. 
 
-def dec_to_bin(num,nbits):
+def __dec_to_bin(num,nbits):
 	new_num = num
 	bin = []
 	for j in range(nbits):
@@ -221,8 +222,9 @@ def dec_to_bin(num,nbits):
 			bin.append(0)
 	return bin
 
-#delta = lambda x,y: x==y # NOTE: Boolean values are actually a subclass of integers, so True*3 == 3
-def delta(x,y):
+#__delta = lambda x,y: x==y # NOTE: Boolean values are actually a subclass of integers, so True*3 == 3
+def __delta(x,y):
+
 	return x != y
 
 def hausdorff_distance_point(a,B):
@@ -242,9 +244,9 @@ def hausdorff_distance_sets(X,Y):
 	HD2 = hausdorff_semidistance_set(Y,X)
 	return max([HD1,HD2])
 	 
-def dot_product(u,v):
+def __dot___product(u,v):
 	"""
-	Basic mod 2 dot product.
+	Basic mod 2 dot __product.
 	"""
 	s = sum(u[k]*v[k] for k in range(len(u)))
 	return s%2
@@ -261,22 +263,22 @@ def weight_k_vectors(k,nbits):
 		vector_set_to_return.append(vec_to_add)
 	return vector_set_to_return
 	
-def product(x):
+def __product(x):
 	"""
-	Calculates the product of all elements in $x$.
+	Calculates the __product of all elements in $x$.
 	
 	# Arguments
-		x - A list to find the product of.
+		x - A list to find the __product of.
 		
 	# Returns
-		The product of the list.
+		The __product of the list.
 	"""
 	return reduce((lambda y,z : y*z), x)
 
 	
-def powerset(iterable):
+def __powerset(iterable):
 	"""
-	Generates the powerset of an iterable.
+	Generates the __powerset of an iterable.
 	"""
 	s = list(iterable)
 	set_to_return = []
@@ -286,9 +288,9 @@ def powerset(iterable):
 			set_to_return.append(list(item))
 	return set_to_return
 
-def nonemptypowerset(iterable):
+def __nonempty_powerset(iterable):
 	"""
-	Generates the powerset of an interable, excluding the empty set.
+	Generates the __powerset of an interable, excluding the empty set.
 	"""
 	s = list(iterable)
 	set_to_return = []
@@ -319,7 +321,7 @@ def perms_orbit_polynomial(permset,polynomial):
 		Orbits a polynomial using the given permutation set.
 		
 		# Returns
-		A list of the polynomials created by the given orbits.
+			A list of the polynomials created by the given orbits.
 	"""
 	return duplicate_free_list_polynomials([polynomial.apply_permutation(i) for i in permset])
 
@@ -368,14 +370,18 @@ def generate_all_seigenthaler_combinations(func_list,new_var):
 			f1f2siegenthalercombination = siegenthaler_combination(f1,f2,new_var)
 			all_sigenthaler_combinations.append(f1f2siegenthalercombination)
 	return all_seigenthaler_combinations
-			
-def test_function_in_equiv_classes(func,eq_classes):
-	for eq_class in eq_classes:
-		func_in_eq_class = False
-		func_in_eq_class = [func == x for x in eq_class]
-		return func_in_eq_class
 		
 def min_nonzero_dist(poly1, classA):
+	"""
+		Determines the minimum nonzero distance between a polynomial and its nearest neighbor.
+		
+		# Arguments
+			poly1 - A boolean function
+			classA - A class of boolean functions.
+		
+		# Returns
+			The minimum nonzero distance between poly1 and every element of classA.
+	"""
 	dists = [poly1.hamming_distance(f) for f in classA]
 	min_nonzero = float("inf")
 	for dist in dists:
