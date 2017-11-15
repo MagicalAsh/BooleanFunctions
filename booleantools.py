@@ -215,7 +215,6 @@ class FiniteStateMachine:
             for j in vertices:
                 a = _dec_to_bin(i, self.n - 1) 
                 if a[1:] == j[:len(j) - 1]:
-                    print("Trying to eval at " + str([a[0]] + j[:]))
                     thisRow.append(self.func.evaluate_polynomial_at_point([a[0]] + j[:]))
                 else:
                     thisRow.append(None)
