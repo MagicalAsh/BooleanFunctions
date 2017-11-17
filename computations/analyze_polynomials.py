@@ -1,4 +1,6 @@
-import booleantools
+import sys
+sys.path.append("..")
+
 from functools import reduce
 from itertools import combinations,permutations
 import ast

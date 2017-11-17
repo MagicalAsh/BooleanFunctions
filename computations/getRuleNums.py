@@ -1,5 +1,8 @@
-import json
+import sys
+sys.path.append("..")
+
 import booleantools as bt
+import json
 import ast
 import multiprocessing
 from itertools import permutations

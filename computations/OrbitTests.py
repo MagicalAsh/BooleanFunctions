@@ -1,3 +1,6 @@
+import sys
+sys.path.append("..")
+
 import booleantools
 import json
 from itertools import permutations
