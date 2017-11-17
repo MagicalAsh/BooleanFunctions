@@ -196,6 +196,8 @@ class BooleanFunction:
     def __hash__(self):
         return _bin_to_dec(self.tableform)
     
+    def __call__(self, *args):
+        return self.evaluate_polynomial_at_point(*args)
     
 class FiniteStateMachine:
     """
@@ -220,8 +222,39 @@ class FiniteStateMachine:
                     thisRow.append(None)
             self.adjMatr.append(thisRow)
 
+class CellularAutomata:
+    
+    def __init__(self, func, initialState):
+        self.func = func
+        self.state = initialState
+        self.time = [initialState]
+
+    def update(self):
+        out = []
+        for i in range(0, len(self.state)):
+            start = i - (self.func.n//2)
+            end = (i + (self.func.n//2)) % len(self.state) + 1
+            out.append(self.func(_circle_slice(self.state, start, end)))
+
+        self.state = out
+        self.time.append(out)
+    
+    def get_column(self, col):
+        return [row[col] for row in self.time]
+
 ##A basic binary-to-decimal converter.
 ##Could obviously be optimized to reduce exponentiation.
+
+def _circle_slice(lst, start, end):
+    if 0 <= start < end < len(lst):
+        return lst[start:end]
+    elif start < 0:
+        return lst[start+len(lst):] + lst[:end]
+    elif end >= len(lst):
+        return lst[start:] + lst[0:end-len(lst)]
+    elif start > end:
+        return lst[start:] + lst[:end]
+    return []
 
 def _bin_to_dec(num):
     return sum([num[i]*2**i for i in range(len(num))])
