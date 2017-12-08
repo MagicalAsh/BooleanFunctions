@@ -8,7 +8,7 @@ from booleantools import FiniteStateMachine
 import copy
 
 def main():
-    with open("in/2res_classes.json") as fileIn:
+    with open("../computations/in/2res_classes.json") as fileIn:
         f_list = [BooleanFunction(f, 5) for f in json.load(fileIn)["classes"]]
     
     for f in f_list:

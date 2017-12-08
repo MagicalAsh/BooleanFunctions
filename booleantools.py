@@ -1,3 +1,5 @@
+import copy
+from enum import Enum
 from functools import reduce
 from itertools import combinations,permutations
 from math import log
@@ -16,7 +18,14 @@ class BooleanFunction:
             n -- The number of variables, where n - 1 is the highest term in the list form.
         """
         self.n = n
-        self.listform = deepcopy(listform)
+        copyList = []
+        for i in listform:
+            if i not in copyList:
+                copyList.append(i)
+            else:
+                copyList.remove(i)
+
+        self.listform = copyList
         self.__update_rule_table()
     
     def hamming_weight(self):
@@ -38,7 +47,7 @@ class BooleanFunction:
         # Returns
             A list of distances if #other is a list, or a float if #other is another function.
         """
-        if not isinstance(self, BooleanFunction) and hasattr(other, "__getitem__"): #If other is a list
+        if hasattr(other, "__getitem__"): #If other is a list
             return [self.hamming_distance(f) for f in other]
         else: 
             u = self.tableform
@@ -105,7 +114,7 @@ class BooleanFunction:
         f = self.tableform
         return self.is_balanced() and self.is_correlation_immune(k)
     
-    def nonlinearity(self,n):
+    def nonlinearity(self):
         """
         Gets the nonlinearity of this boolean function.
         
@@ -114,7 +123,7 @@ class BooleanFunction:
             
         """
         f = self.tableform
-        return 2**(n-1) - 0.5*self.walsh_spectrum()
+        return 2**(self.n-1) - 0.5*self.walsh_spectrum()
     
     def evaluate_polynomial_at_point(self, x):
         """
@@ -129,10 +138,12 @@ class BooleanFunction:
         f = self.listform
         value = 0
         for monomial in f:
-            monomial_eval = _product([x[i] for i in monomial])
-            value += monomial_eval
-        if [] in f:
-             value += 1
+            if monomial != []:
+                monomial_eval = _product([x[i] for i in monomial])
+                value += monomial_eval
+            else:
+                value += 1
+
         value = value%2
         return value
         
@@ -159,6 +170,34 @@ class BooleanFunction:
         out = [apply_perm_to_monomial(perm, i) for i in self.listform]
         return BooleanFunction(out, self.n)
         
+    def linear_structures(self):
+        """
+            Creates a set of valuse that exist as linear structures of this polynomial
+        """
+        flatten = lambda l: [item for sublist in l for item in sublist]
+        linear_structs = set(flatten(self.listform))
+        for monomial in self.listform:
+            if len(monomial) > 1:
+                linear_structs -= set(monomial)
+
+        return linear_structs
+    
+    def tex_str(self, math_mode=False):
+        out = "" if not math_mode else "$"
+        flag = False
+        for monomial in self.listform:
+            out += " \\oplus " if flag else ""
+            for term in monomial:
+                out += "x_{" + str(term) + "}"
+
+            flag = True
+
+        return out if not math_mode else out + "$"
+    
+    def __str__(self):
+        return self.tex_str()
+
+
     def __eq__(self,poly2):
         return self.tableform == poly2.tableform
 
@@ -179,11 +218,8 @@ class BooleanFunction:
         else:
             return None
             
-    def __str__(self):
-        return str(self.listform)
-    
     def __repr__(self):
-        return "BooleanFunction(%s, %s)" % (str(self), str(self.n))
+        return "BooleanFunction(%s, %s)" % (str(self.listform), str(self.n))
     
     def __update_rule_table(self):
         rule_table_length = 2**self.n
@@ -223,13 +259,17 @@ class FiniteStateMachine:
             self.adjMatr.append(thisRow)
 
 class CellularAutomata:
-    
+    """
+    A class representing a basic cellular automata using a boolean function as a rule.
+    """
+
     def __init__(self, func, initialState):
         self.func = func
         self.state = initialState
-        self.time = [initialState]
+        self.time = []
 
     def update(self):
+        self.time.append(copy.deepcopy(self.state))
         out = []
         for i in range(0, len(self.state)):
             start = i - (self.func.n//2)
@@ -237,15 +277,66 @@ class CellularAutomata:
             out.append(self.func(_circle_slice(self.state, start, end)))
 
         self.state = out
-        self.time.append(out)
-    
+        
+         
+    def pretty_print(self):
+        for row in self.time:
+            for cell in row:
+                char = "\033[7m \033[0m" if cell == 1 else " "
+                print(char, sep="", end="")
+
+            print()
+
     def get_column(self, col):
         return [row[col] for row in self.time]
 
-##A basic binary-to-decimal converter.
-##Could obviously be optimized to reduce exponentiation.
+class TargetTransitions(Enum):
+        """
+            An Enum representing which states under which a target CA is allowed to change state.
+        """
+        TARGET_TO_TARGET = 0
+        TARGET_TO_NON = 1
+        NON_TO_TARGET = 2
+        NON_TO_NON = 3
+        
+        def standard_revs():
+            return TargetTransitions.TARGET_TO_TARGET, TargetTransitions.NON_TO_TARGET, TargetTransitions.NON_TO_NON
+
+class TargetedCellularAutomata(CellularAutomata):
+    def __init__(self, func, initialState, targetState, *args):
+        super().__init__(func, initialState)
+        self.targetState = targetState
+        self.reversionValues = frozenset(args)
+
+    def update(self):
+        super().update()
+        oldState = self.time[-1]
+        for i in range(len(oldState)):
+            change = _get_change_state(self.targetState[i], oldState[i], self.state[i])
+            if change not in self.reversionValues:
+                self.state[i] = oldState[i]
+        
+
+
+def _get_change_state(target, curr, nex):
+    is_curr_tar = (target == curr)
+    is_nex_tar = (target == nex)
+
+    if is_curr_tar and not is_nex_tar:
+        return TargetTransitions.TARGET_TO_NON
+    elif is_nex_tar and not is_curr_tar:
+        return TargetTransitions.NON_TO_TARGET
+    elif is_nex_tar and is_curr_tar:
+        return TargetTransitions.TARGET_TO_TARGET
+    else:
+        return TargetTransitions.NON_TO_NON
+
 
 def _circle_slice(lst, start, end):
+    """
+    Slices a list in a loop. Treats the list as a ring and slices from beginning to end,
+    looping back to the beginning of the list if necessary.
+    """
     if 0 <= start < end < len(lst):
         return lst[start:end]
     elif start < 0:
@@ -254,15 +345,26 @@ def _circle_slice(lst, start, end):
         return lst[start:] + lst[0:end-len(lst)]
     elif start > end:
         return lst[start:] + lst[:end]
+    elif start == end:
+        return lst[start:] + lst[:end]
+
+    print("SLICE FAILURE: ", lst, "FROM:", start, "END:", end)
     return []
 
 def _bin_to_dec(num):
+    
+    """
+    Converts a binary vector to a decimal number.
+    """
     return sum([num[i]*2**i for i in range(len(num))])
 
 #A basic decimal-to-binary converter.
 #We need nbits in case padded 0's are needed at the front. 
 
 def _dec_to_bin(num,nbits):
+    """
+    Creates a binary vector of length nbits from a number.
+    """
     new_num = num
     bin = []
     for j in range(nbits):
@@ -279,7 +381,9 @@ def _dec_to_bin(num,nbits):
 
 #__delta = lambda x,y: x==y # NOTE: Boolean values are actually a subclass of integers, so True*3 == 3
 def _delta(x,y):
-
+    """
+    Returns 1 if x and y differ, 0 otherwise.
+    """
     return x != y
 
 def hausdorff_distance_point(a,B):
@@ -330,31 +434,6 @@ def _product(x):
     """
     return reduce((lambda y,z : y*z), x)
 
-    
-def _powerset(iterable):
-    """
-    Generates the __powerset of an iterable.
-    """
-    s = list(iterable)
-    set_to_return = []
-    for r in range(len(s)+1):
-        sr_combinations = combinations(s,r)
-        for item in sr_combinations:
-            set_to_return.append(list(item))
-    return set_to_return
-
-def _nonempty_powerset(iterable):
-    """
-    Generates the __powerset of an interable, excluding the empty set.
-    """
-    s = list(iterable)
-    set_to_return = []
-    for r in range(1,len(s)+1):
-        sr_combinations = combinations(s,r)
-        for item in sr_combinations:
-            set_to_return.append(list(item))
-    return set_to_return    
-    
 def duplicate_free_list_polynomials(list_of_polys):
     """
     Takes a list of boolean functions and generates a duplicate free list of polynomials.
@@ -446,6 +525,9 @@ def min_nonzero_dist(poly1, classA):
     return dist
 
 def reduce_to_classes(f_list, permset):
+    """
+    Reduces a list of functions to a list of function classes given a permutation set.
+    """
     basic_polys = []
     flatten = lambda l: [item for sublist in l for item in sublist]
     for f in f_list:
