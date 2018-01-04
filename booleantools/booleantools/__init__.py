@@ -5,20 +5,134 @@ from itertools import combinations,permutations
 from math import log
 from copy import deepcopy
 
-class BooleanFunction:
+class FieldFunction:
     """
-    This class represents a boolean function ($\mathbb{F}_2^n \\rightarrow \mathbb{F}_2$) and implements a large amount of useful functions.
+    Represents a function over a Finite Field.
+    """
+    class GF4(Enum):
+        """
+        Represents the Galois Field GF(4) with proper addition and multiplication.
+        """
+
+        ZERO = (0, 0)
+        ONE = (0, 1)
+        X = (1, 0)
+        X_PLUS_ONE = (1, 1)
+
+        def __add__(a, b):
+            return FieldFunction.GF4(((a.value[0] + b.value[0])%2, (a.value[1] + b.value[1])%2))
+
+        def __mul__(a, b):
+            if a == FieldFunction.GF4.ZERO or b == FieldFunction.GF4.ZERO:
+                return FieldFunction.GF4.ZERO
+            else:
+                z_mod_3 = {FieldFunction.GF4.ONE: 0, FieldFunction.GF4.X: 1, FieldFunction.GF4.X_PLUS_ONE: 2}
+                flipped_z3 = {0: FieldFunction.GF4.ONE, 1: FieldFunction.GF4.X, 2: FieldFunction.GF4.X_PLUS_ONE}
+                a_val = z_mod_3[a]
+                b_val = z_mod_3[b]
+                final = flipped_z3[(a_val + b_val) % 3]
+                return final
+
+    class GF2(Enum):
+        """
+        Represents the Finite Field $F_2$ with proper addition and multiplication.
+        """
+        ZERO = 0
+        ONE = 1
+
+        def __add__(a, b):
+            return (a.value + b.value) % 2
+
+        def __mul__(a, b):
+            return a.value * b.value
+    
+    def __init__(self, listform, n, field):
+        self.listform = listform
+        self.n = n
+        self.field = field
+
+    def __call__(self, *args):
+        for pos, val in enumerate(args): #Simplification for inputs
+            args = list(args)
+            if val == 1:
+                args[pos] = self.field.ONE
+            elif val == 0:
+                args[pos] = self.field.ZERO
+
+        value = self.field.ZERO
+        for monomial in self.listform:
+            if monomial not in self.field:
+                prod = self.field.ONE
+                for var in monomial:
+                    if var not in self.field:
+                        prod *= args[var]
+                    else:
+                        prod *= var
+                value += prod
+            else:
+                value += monomial
+        return value
+        
+    
+    def apply_permutation(self, perm):
+        """
+        Applies a permutation to this function.
+        \\\[
+            f^\sigma(x)
+        \\\]
+        
+        where sigma is in one line notation.
+        
+        Args:
+            perm (list): The permutation to apply, in one line notation. 
+            
+        Returns:
+            BooleanFunction: A boolean function where the permutation was applied.
+        """
+        def apply_perm_to_monomial(perm,monomial):
+            out = []
+            for var in monomial:
+                if var in self.field:
+                    out.append(var)
+                else:
+                    out.append(perm[var])
+            return out
+            
+    
+        out = [apply_perm_to_monomial(perm, i) for i in self.listform]
+        return FieldFunction(out, self.n, self.field)
+
+    def __add__(a, b):
+        if a.field != b.field:
+            raise ValueError("Summands from different fields.")
+        return FieldFunction(a.listform + b.listform, max(a.n, b.n), a.field)
+
+    def __mul__(a, b):
+        if a.field != b.field:
+            raise ValueError("Multiplicands are not from the same field.")
+
+        out = []
+        for monomial in a.listform:
+            out += [monomial + monomial_b for monomial_b in b.listform]
+        
+        return FieldFunction(out, max(a.n, b.n), a.field)
+
+class BooleanFunction(FieldFunction):
+    """
+    This class represents a boolean function ($\\mathbb{F}_2^n \\rightarrow \\mathbb{F}_2) and implements a large amount of useful functions.
     """
     def __init__(self, listform, n):
         """
-        Creates a boolean function on $n$ variables.
+        Creates a boolean function on n variables.
         
-        # Arguments
-            listform -- A list of the monomials this polynomial contains. Ex. \[x_1 \oplus x_2x_3\] is [[0], [1, 2]].
-            n -- The number of variables, where n - 1 is the highest term in the list form.
+        Attributes:
+            listform (list): A list of the monomials this polynomial contains. Ex. \[x_1 \oplus x_2x_3\] is [[0], [1, 2]].
+            n (int): The number of variables, where n - 1 is the highest term in the list form.
         """
-        self.n = n
+        super().__init__(listform, n, FieldFunction.GF2)
         copyList = []
+
+        #This is done for space efficiency
         for i in listform:
             if i not in copyList:
                 copyList.append(i)
@@ -32,8 +146,8 @@ class BooleanFunction:
         """
             Returns the Hamming Weight of this function.
             
-            # Returns
-                The hamming weight of this function.
+            Returns:
+                int: The hamming weight of this function.
         """
         return sum(self.tableform)
         
@@ -41,11 +155,11 @@ class BooleanFunction:
         """
         Determines the hamming distance of a function or a list of functions.
         
-        # Arguments
-            other - function or list of functions to find distance to.
+        Args:
+            other (BooleanFunction): function or list of functions to find distance to.
             
-        # Returns
-            A list of distances if #other is a list, or a float if #other is another function.
+        Returns:
+            int: A list of distances if #other is a list, or a float if #other is another function.
         """
         if hasattr(other, "__getitem__"): #If other is a list
             return [self.hamming_distance(f) for f in other]
@@ -58,6 +172,9 @@ class BooleanFunction:
     def walsh_transform(self):
         """
         Performs a Walsh transform on this function.
+
+        Returns:
+            list: A list containing the walsh transform of this function.
         """
         f = self.tableform
         nbits = int(log(len(f),2))
@@ -70,6 +187,9 @@ class BooleanFunction:
     def walsh_spectrum(self):
         """
         Generates the Walsh spectrum for this function.
+
+        Returns:
+            float: The Walsh spectrum of this function.
         """
         f = self.tableform
         walsh_transform_f = self.walsh_transform()
@@ -81,17 +201,17 @@ class BooleanFunction:
         Determines whether this function is balanced or not.
         
         # Returns
-            True if balanced, False otherwise.
+            bool: True if balanced, False otherwise.
         """
         f = self.tableform
         return sum(f) == len(f)/2
 
     def is_correlation_immune(self,k=1):
         """
-        Determines if this function is $k$ correlation immune.
+        Determines if this function is k correlation immune.
         
-        # Arguments
-            k - immunity level
+        Args:
+            k (int): immunity level
         """
         f = self.tableform
         walsh_transform_f = self.walsh_transform()
@@ -102,10 +222,10 @@ class BooleanFunction:
 
     def is_k_resilient(self,k=1):
         """
-        Determines if this boolean function is $k$-resilient.
+        Determines if this boolean function is k-resilient.
         
-        # Arguments
-            k - immunity level
+        Args:
+            k (int): immunity level
             
         # See:
             #is_correlation_immune
@@ -118,61 +238,19 @@ class BooleanFunction:
         """
         Gets the nonlinearity of this boolean function.
         
-        # Returns
-            Nonlinearity of this boolean function.
+        Returns:
+            int: Nonlinearity of this boolean function.
             
         """
         f = self.tableform
         return 2**(self.n-1) - 0.5*self.walsh_spectrum()
     
-    def evaluate_polynomial_at_point(self, x):
-        """
-        Evaluates this function at $x$.
-        
-        # Arguments
-            x - The value to evaluate at.
-            
-        # Returns
-            An integer result to $f(x)$.
-        """
-        f = self.listform
-        value = 0
-        for monomial in f:
-            if monomial != []:
-                monomial_eval = _product([x[i] for i in monomial])
-                value += monomial_eval
-            else:
-                value += 1
-
-        value = value%2
-        return value
-        
-    def apply_permutation(self, perm):
-        """
-        Applies a permutation to this function.
-        \\\[
-            f^\sigma(x)
-        \\\]
-        
-        where sigma is in one line notation.
-        
-        # Arguments
-            perm - The permutation to apply, in one line notation. 
-            
-        # Returns
-            A boolean function where the permutation was applied.
-        """
-        def apply_perm_to_monomial(perm,monomial):
-            out = [perm[i] for i in monomial]
-            return out
-            
-    
-        out = [apply_perm_to_monomial(perm, i) for i in self.listform]
-        return BooleanFunction(out, self.n)
-        
     def linear_structures(self):
         """
-            Creates a set of valuse that exist as linear structures of this polynomial
+            Creates a set of values that exist as linear structures of this polynomial.
+
+            Returns:
+                set: Set of linear structures.
         """
         flatten = lambda l: [item for sublist in l for item in sublist]
         linear_structs = set(flatten(self.listform))
@@ -183,6 +261,15 @@ class BooleanFunction:
         return linear_structs
     
     def tex_str(self, math_mode=False):
+        """
+        Creates a TeX String from this BooleanFunction.
+
+        Args:
+            math_mode (bool, optional): Whether to return with surrounding '$'.
+
+        Returns:
+            str: A proper TeX String representing this function.
+        """
         out = "" if not math_mode else "$"
         flag = False
         for monomial in self.listform:
@@ -201,23 +288,6 @@ class BooleanFunction:
     def __eq__(self,poly2):
         return self.tableform == poly2.tableform
 
-    def __add__(self, other):
-        newPoly = BooleanFunction(self.listform + other.listform, max(self.n, other.n))
-        return newPoly
-        
-    def __mul__(self, other):
-        if isinstance(other, int ): #I do this explicitly because it's kinda weird otherwise
-            n = self.n
-            if n == other:
-                n += 1
-            newf = BooleanFunction(self.listform, n)
-            for monomial in newf.listform:
-                monomial.append(other)
-            newf.__update_rule_table()
-            return newf
-        else:
-            return None
-            
     def __repr__(self):
         return "BooleanFunction(%s, %s)" % (str(self.listform), str(self.n))
     
@@ -231,9 +301,6 @@ class BooleanFunction:
         
     def __hash__(self):
         return _bin_to_dec(self.tableform)
-    
-    def __call__(self, *args):
-        return self.evaluate_polynomial_at_point(*args)
     
 class FiniteStateMachine:
     """
@@ -269,6 +336,10 @@ class CellularAutomata:
         self.time = []
 
     def update(self):
+        """
+        Updates this Cellular Automata to the next state, and appends the old state to the time
+        attribute.
+        """
         self.time.append(copy.deepcopy(self.state))
         out = []
         for i in range(0, len(self.state)):
@@ -280,6 +351,9 @@ class CellularAutomata:
         
          
     def pretty_print(self):
+        """
+        Prints the state over time in a format that is easily visible in a Bash command line.
+        """
         for row in self.time:
             for cell in row:
                 char = "\033[7m \033[0m" if cell == 1 else " "
@@ -288,6 +362,15 @@ class CellularAutomata:
             print()
 
     def get_column(self, col):
+        """
+        Gets a column over time of the CA.
+
+        Args:
+            col (int): An integer representing the column to get
+
+        Returns:
+            list: The column over time, with index 0 being the initial state.
+        """
         return [row[col] for row in self.time]
 
 class TargetTransitions(Enum):
@@ -300,6 +383,13 @@ class TargetTransitions(Enum):
         NON_TO_NON = 3
         
         def standard_revs():
+            """
+            Returns the standard revision values, allowing moving from Target state to Target State,
+            Nontarget state to Nontarget state, and Nontarget State to Target State.
+
+            Returns:
+                TargetTransitions: The above states.
+            """
             return TargetTransitions.TARGET_TO_TARGET, TargetTransitions.NON_TO_TARGET, TargetTransitions.NON_TO_NON
 
 class TargetedCellularAutomata(CellularAutomata):
@@ -315,7 +405,16 @@ class TargetedCellularAutomata(CellularAutomata):
             change = _get_change_state(self.targetState[i], oldState[i], self.state[i])
             if change not in self.reversionValues:
                 self.state[i] = oldState[i]
-        
+
+
+def Sym(n):
+    """
+    Creates a set containing all permutations in the symmetric group $S_n$.
+
+    Returns:
+        list: A set containing every permutation in $S_n$, in one-line notation.
+    """
+    return set(permutations([i for i in range(n+1)]))
 
 
 def _get_change_state(target, curr, nex):
@@ -424,13 +523,13 @@ def weight_k_vectors(k,nbits):
     
 def _product(x):
     """
-    Calculates the __product of all elements in $x$.
+    Calculates the product of all elements in $x$.
     
     # Arguments
-        x - A list to find the __product of.
+        x - A list to find the product of.
         
     # Returns
-        The __product of the list.
+        The product of the list.
     """
     return reduce((lambda y,z : y*z), x)
 
@@ -439,10 +538,10 @@ def duplicate_free_list_polynomials(list_of_polys):
     Takes a list of boolean functions and generates a duplicate free list of polynomials.
     
     # Arguments
-        list_of_polys - A list of polynomials.
+        list_of_polys (BooleanFunction): A list of polynomials.
         
     # Returns
-        A duplicate free list of functions
+        list: A duplicate free list of functions
     """
     outlist = [] 
     for poly in list_of_polys:
@@ -454,7 +553,10 @@ def perms_orbit_polynomial(permset,polynomial):
     """
         Orbits a polynomial using the given permutation set.
         
-        # Returns
+        Args:
+            permset: A set of permutations to apply to the function
+
+        Returns:
             A list of the polynomials created by the given orbits.
     """
     return duplicate_free_list_polynomials([polynomial.apply_permutation(i) for i in permset])
@@ -463,7 +565,7 @@ def perms_equiv_classes_polynomial_list(permset,polynomial_list):
     """
     Orbits a list of polynomials using the given permutation set.
     
-    # Returns
+    Returns:
         A list of lists of the polynomials created by the given orbits.
     """
     return [perms_orbit_polynomial(permset,polynomial) for polynomial in polynomial_list]
@@ -473,12 +575,12 @@ def siegenthaler_combination(f1,f2,new_var):
     """
     Generates a Siegenthaler Combination of two functions.
     
-    # Arguments
-        f1 - The first function
-        f2 - The second function
-        new_var - New variable for the combined function.
+    Args:
+        f1 (BooleanFunction): The first function
+        f2 (BooleanFunction): The second function
+        new_var (int): New variable for the combined function.
     
-    # Returns
+    Returns:
         The Siegenthaler combination of $f_1$ and $f_2$
         
     """
@@ -492,10 +594,10 @@ def generate_all_seigenthaler_combinations(func_list,new_var):
     Generates all of the possible Siegenthaler combinations
     of the given functions.
     
-    # Arguments
+    Args:
         func_list - A list of functions to perform the Siegenthaler combination function on.
         
-    # Returns
+    Returns:
         A list of all possible Siegenthaler combinations for the given functions.
     """
     all_siegenthaler_combinations = []
@@ -507,14 +609,14 @@ def generate_all_seigenthaler_combinations(func_list,new_var):
         
 def min_nonzero_dist(poly1, classA):
     """
-        Determines the minimum nonzero distance between a polynomial and its nearest neighbor.
+    Determines the minimum nonzero distance between a polynomial and its nearest neighbor.
         
-        # Arguments
-            poly1 - A boolean function
-            classA - A class of boolean functions.
+    Args:
+        poly1 - A boolean function
+        classA - A class of boolean functions.
         
-        # Returns
-            The minimum nonzero distance between poly1 and every element of classA.
+    Returns:
+        The minimum nonzero distance between poly1 and every element of classA.
     """
     dists = [poly1.hamming_distance(f) for f in classA]
     min_nonzero = float("inf")
