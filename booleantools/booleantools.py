@@ -41,19 +41,20 @@ class FieldFunction:
         ONE = 1
 
         def __add__(a, b):
-            return (a.value + b.value) % 2
+            return FieldFunction.GF2((a.value + b.value) % 2)
 
         def __mul__(a, b):
-            return a.value * b.value
+            return FieldFunction.GF2(a.value * b.value)
     
     def __init__(self, listform, n, field):
         self.listform = listform
         self.n = n
         self.field = field
+        self.__reduce()
 
     def __call__(self, *args):
+        args = list(args)
         for pos, val in enumerate(args): #Simplification for inputs
-            args = list(args)
             if val == 1:
                 args[pos] = self.field.ONE
             elif val == 0:
@@ -117,6 +118,11 @@ class FieldFunction:
         
         return FieldFunction(out, max(a.n, b.n), a.field)
 
+    def __reduce(self):
+        for i in range(len(self.listform)):
+            self.listform[i] = [val for val in self.listform[i] if val != self.field.ONE]
+
+
 class BooleanFunction(FieldFunction):
     """
     This class represents a boolean function ($\\mathbb{F}_2^n \\rightarrow \\mathbb{F}_2) and implements a large amount of useful functions.
@@ -140,7 +146,7 @@ class BooleanFunction(FieldFunction):
                 copyList.remove(i)
 
         self.listform = copyList
-        self.__update_rule_table()
+        self.update_rule_table()
     
     def hamming_weight(self):
         """
@@ -283,7 +289,14 @@ class BooleanFunction(FieldFunction):
     
     def __str__(self):
         return self.tex_str()
-
+    
+    def __add__(a, b):
+        sum_f = FieldFunction.__add__(a, b)
+        return BooleanFunction(sum_f.listform, sum_f.n)
+    
+    def __mul__(a, b):
+        prod_f = FieldFunction.__mul__(a, b)
+        return BooleanFunction(prod_f.listform, prod_f.n)
 
     def __eq__(self,poly2):
         return self.tableform == poly2.tableform
@@ -291,12 +304,12 @@ class BooleanFunction(FieldFunction):
     def __repr__(self):
         return "BooleanFunction(%s, %s)" % (str(self.listform), str(self.n))
     
-    def __update_rule_table(self):
+    def update_rule_table(self):
         rule_table_length = 2**self.n
         rule_table = [0]*rule_table_length
         for k in range(rule_table_length):
             point_to_evaluate = _dec_to_bin(k, self.n)
-            rule_table[k] = self.evaluate_polynomial_at_point(point_to_evaluate)
+            rule_table[k] = self(*point_to_evaluate)
         self.tableform = rule_table
         
     def __hash__(self):
@@ -320,7 +333,7 @@ class FiniteStateMachine:
             for j in vertices:
                 a = _dec_to_bin(i, self.n - 1) 
                 if a[1:] == j[:len(j) - 1]:
-                    thisRow.append(self.func.evaluate_polynomial_at_point([a[0]] + j[:]))
+                    thisRow.append(self.func([a[0]] + j[:]))
                 else:
                     thisRow.append(None)
             self.adjMatr.append(thisRow)
@@ -332,7 +345,15 @@ class CellularAutomata:
 
     def __init__(self, func, initialState):
         self.func = func
-        self.state = initialState
+        self.state = []
+        for cell in initialState:
+            if cell == 1:
+                self.state.append(func.field.ONE)
+            elif cell == 0:
+                self.state.append(func.field.ZERO)
+            else:
+                self.state.append(cell)
+
         self.time = []
 
     def update(self):
@@ -345,19 +366,19 @@ class CellularAutomata:
         for i in range(0, len(self.state)):
             start = i - (self.func.n//2)
             end = (i + (self.func.n//2)) % len(self.state) + 1
-            out.append(self.func(_circle_slice(self.state, start, end)))
+            out.append(self.func(*_circle_slice(self.state, start, end)))
 
         self.state = out
         
          
-    def pretty_print(self):
+    def pretty_print(self, colorMap=None):
         """
         Prints the state over time in a format that is easily visible in a Bash command line.
         """
+        colorMap = colorMap if colorMap is not None else {self.func.field.ZERO: " ", self.func.field.ONE: "\033[7m \033[0m"} 
         for row in self.time:
             for cell in row:
-                char = "\033[7m \033[0m" if cell == 1 else " "
-                print(char, sep="", end="")
+                print(colorMap[cell], sep="", end="")
 
             print()
 
@@ -416,6 +437,28 @@ def Sym(n):
     """
     return set(permutations([i for i in range(n+1)]))
 
+
+def gen_atomic(n, pos):
+        prod = BooleanFunction([[FieldFunction.GF2.ONE]], n)
+        for position, val in enumerate(_dec_to_bin(pos, n)):
+            if val == 1:
+                f = BooleanFunction([[position]], n)
+                prod *= f
+            else:
+                f = BooleanFunction([[position], [FieldFunction.GF2.ONE]], n)
+                prod *= f
+        if prod.tableform[pos] != FieldFunction.GF2.ONE:
+           raise BaseException("Bad things happened!")
+        return prod
+
+def generate_function(rule_no, n): 
+    endFunc = BooleanFunction([], n)
+    binary_list = _dec_to_bin(rule_no, 2**n)
+    for pos, val in enumerate(binary_list[::-1]):
+        if val == 1:
+            endFunc += gen_atomic(n, pos)
+
+    return endFunc
 
 def _get_change_state(target, curr, nex):
     is_curr_tar = (target == curr)
