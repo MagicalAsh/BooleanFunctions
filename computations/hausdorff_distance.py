@@ -1,6 +1,3 @@
-import sys
-sys.path.append("..")
-
 import ast
 import json
 import booleantools
