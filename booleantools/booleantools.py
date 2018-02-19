@@ -5,46 +5,55 @@ from itertools import combinations,permutations
 from math import log
 from copy import deepcopy
 
+
+def Sym(n):
+    """
+    Creates a set containing all permutations in the symmetric group $S_n$.
+
+    Returns:
+        list: A set containing every permutation in $S_n$, in one-line notation.
+    """
+    return list(permutations([i for i in range(n)]))
+
+
+class GF4(Enum):
+    """
+    Represents the Galois Field GF(4) with proper addition and multiplication.
+    """
+    ZERO = (0, 0)
+    ONE = (0, 1)
+    X = (1, 0)
+    X_PLUS_ONE = (1, 1)
+    def __add__(a, b):
+        return GF4(((a.value[0] + b.value[0])%2, (a.value[1] + b.value[1])%2))
+
+    def __mul__(a, b):
+        if a == GF4.ZERO or b == GF4.ZERO:
+            return GF4.ZERO
+        else:
+            z_mod_3 = {GF4.ONE: 0, GF4.X: 1, GF4.X_PLUS_ONE: 2}
+            flipped_z3 = {0: GF4.ONE, 1: GF4.X, 2: GF4.X_PLUS_ONE}
+            a_val = z_mod_3[a]
+            b_val = z_mod_3[b]
+            final = flipped_z3[(a_val + b_val) % 3]
+            return final
+
+class GF2(Enum):
+    """
+    Represents the Finite Field $F_2$ with proper addition and multiplication.
+    """
+    ZERO = 0
+    ONE = 1
+    def __add__(a, b):
+        return GF2((a.value + b.value) % 2)
+
+    def __mul__(a, b):
+        return GF2(a.value * b.value)
+
 class FieldFunction:
     """
     Represents a function over a Finite Field.
     """
-    class GF4(Enum):
-        """
-        Represents the Galois Field GF(4) with proper addition and multiplication.
-        """
-
-        ZERO = (0, 0)
-        ONE = (0, 1)
-        X = (1, 0)
-        X_PLUS_ONE = (1, 1)
-
-        def __add__(a, b):
-            return FieldFunction.GF4(((a.value[0] + b.value[0])%2, (a.value[1] + b.value[1])%2))
-
-        def __mul__(a, b):
-            if a == FieldFunction.GF4.ZERO or b == FieldFunction.GF4.ZERO:
-                return FieldFunction.GF4.ZERO
-            else:
-                z_mod_3 = {FieldFunction.GF4.ONE: 0, FieldFunction.GF4.X: 1, FieldFunction.GF4.X_PLUS_ONE: 2}
-                flipped_z3 = {0: FieldFunction.GF4.ONE, 1: FieldFunction.GF4.X, 2: FieldFunction.GF4.X_PLUS_ONE}
-                a_val = z_mod_3[a]
-                b_val = z_mod_3[b]
-                final = flipped_z3[(a_val + b_val) % 3]
-                return final
-
-    class GF2(Enum):
-        """
-        Represents the Finite Field $F_2$ with proper addition and multiplication.
-        """
-        ZERO = 0
-        ONE = 1
-
-        def __add__(a, b):
-            return FieldFunction.GF2((a.value + b.value) % 2)
-
-        def __mul__(a, b):
-            return FieldFunction.GF2(a.value * b.value)
     
     def __init__(self, listform, n, field):
         self.listform = listform
@@ -88,7 +97,7 @@ class FieldFunction:
             perm (list): The permutation to apply, in one line notation. 
             
         Returns:
-            BooleanFunction: A boolean function where the permutation was applied.
+            FieldFunction: A function where the permutation was applied.
         """
         def apply_perm_to_monomial(perm,monomial):
             out = []
@@ -118,6 +127,34 @@ class FieldFunction:
         
         return FieldFunction(out, max(a.n, b.n), a.field)
 
+    
+    def tex_str(self, math_mode=False):
+        """
+        Creates a TeX String from this BooleanFunction.
+
+        Args:
+            math_mode (bool, optional): Whether to return with surrounding '$'.
+
+        Returns:
+            str: A proper TeX String representing this function.
+        """
+        out = "" if not math_mode else "$"
+        flag = False
+        for monomial in self.listform:
+            out += " \\oplus " if flag else ""
+            for term in monomial:
+                out += "x_{" + str(term) + "}"
+
+            flag = True
+
+        return out if not math_mode else out + "$"
+
+    def __str__(self):
+        return self.tex_str()
+
+    def __repr__(self):
+        return "FieldFunction(%s, %s, %s)" % (str(self.listform), str(self.n), str(self.field))
+
     def __reduce(self):
         for i in range(len(self.listform)):
             self.listform[i] = [val for val in self.listform[i] if val != self.field.ONE]
@@ -135,7 +172,7 @@ class BooleanFunction(FieldFunction):
             listform (list): A list of the monomials this polynomial contains. Ex. \[x_1 \oplus x_2x_3\] is [[0], [1, 2]].
             n (int): The number of variables, where n - 1 is the highest term in the list form.
         """
-        super().__init__(listform, n, FieldFunction.GF2)
+        super().__init__(listform, n, GF2)
         copyList = []
 
         #This is done for space efficiency
@@ -155,7 +192,7 @@ class BooleanFunction(FieldFunction):
             Returns:
                 int: The hamming weight of this function.
         """
-        return sum(self.tableform)
+        return sum(_GF2_to_ints(self.tableform))
         
     def hamming_distance(self, other):
         """
@@ -170,9 +207,9 @@ class BooleanFunction(FieldFunction):
         if hasattr(other, "__getitem__"): #If other is a list
             return [self.hamming_distance(f) for f in other]
         else: 
-            u = self.tableform
-            v = other.tableform
-            s = sum([_delta(u[k],v[k])for k in range(len(u))])
+            u = _GF2_to_ints(self.tableform)
+            v = _GF2_to_ints(other.tableform)
+            s = sum([_delta(u[k],v[k]) for k in range(len(u))])
             return s
         
     def walsh_transform(self):
@@ -182,13 +219,20 @@ class BooleanFunction(FieldFunction):
         Returns:
             list: A list containing the walsh transform of this function.
         """
-        f = self.tableform
-        nbits = int(log(len(f),2))
-        vecs = [_dec_to_bin(x,nbits) for x in range(len(f))]
+        f = _GF2_to_ints(self.tableform)
+        nbits = self.n
+        vecs = [(_dec_to_bin(x,nbits), x) for x in range(len(f))]
         def Sf(w):
-          return sum([(-1)**(f[x]^_dot_product(_dec_to_bin(x,nbits),w)) for x in range(0,len(f))])
-        Sflist = [Sf(vec) for vec in vecs]
+            return sum([(-1)**(f[x]^_dot_product(vec,w)) for vec,x in vecs])
+        Sflist = [Sf(vec) for vec,x in vecs]
         return Sflist
+
+    def __walsh_alt(self):
+        f = _GF2_to_ints(self.tableform)
+        vecs = [(_dec_to_bin(x, self.n), x) for x in range(len(f))]
+        def walsh_t(w):
+            return 2**self.n - 2*sum(f[i] ^ _dot_product(vec, w) for vec,i in vecs)
+        return [walsh_t(vec) for vec,x in vecs]
 
     def walsh_spectrum(self):
         """
@@ -209,7 +253,7 @@ class BooleanFunction(FieldFunction):
         # Returns
             bool: True if balanced, False otherwise.
         """
-        f = self.tableform
+        f = _GF2_to_ints(self.tableform)
         return sum(f) == len(f)/2
 
     def is_correlation_immune(self,k=1):
@@ -219,12 +263,14 @@ class BooleanFunction(FieldFunction):
         Args:
             k (int): immunity level
         """
+        if k > self.n:
+            raise BaseException("Correlation immunity level cannot be higher than the number of variables.")
         f = self.tableform
-        walsh_transform_f = self.walsh_transform()
-        nbits = int(log(len(f),2))
-        vectors_to_test = [_bin_to_dec(vec) for vec in weight_k_vectors(k,nbits)]
-        walsh_transform_at_weight_k = [walsh_transform_f[vec] for vec in vectors_to_test]
-        return walsh_transform_at_weight_k == [0]*len(vectors_to_test)
+        walsh_transform = self.walsh_transform()
+        nbits = self.n
+        vectors_to_test = [_bin_to_dec(vec) for vec in weight_k_or_less_vectors(k,nbits)]
+        walsh_transform_at_weight_k = [walsh_transform[vec] for vec in vectors_to_test]
+        return walsh_transform_at_weight_k == [0]*len(walsh_transform_at_weight_k)
 
     def is_k_resilient(self,k=1):
         """
@@ -237,9 +283,15 @@ class BooleanFunction(FieldFunction):
             #is_correlation_immune
             #is_balanced
         """
-        f = self.tableform
-        return self.is_balanced() and self.is_correlation_immune(k)
+        return self.is_balanced() and self.is_correlation_immune(k=k)
     
+    def is_affine(self):
+        return True if self.nonlinearity() == 0 else False
+    
+    def get_class(self, perms=None):
+        perms = perms if perms is not None else Sym(self.n)
+        return perms_orbit_polynomial(perms, self)
+     
     def nonlinearity(self):
         """
         Gets the nonlinearity of this boolean function.
@@ -248,8 +300,7 @@ class BooleanFunction(FieldFunction):
             int: Nonlinearity of this boolean function.
             
         """
-        f = self.tableform
-        return 2**(self.n-1) - 0.5*self.walsh_spectrum()
+        return int(2**(self.n-1) - 0.5*self.walsh_spectrum())
     
     def linear_structures(self):
         """
@@ -287,6 +338,10 @@ class BooleanFunction(FieldFunction):
 
         return out if not math_mode else out + "$"
     
+    def apply_permutation(self, perm):
+        f = super().apply_permutation(perm)
+        return BooleanFunction(f.listform, f.n)
+
     def __str__(self):
         return self.tex_str()
     
@@ -427,36 +482,35 @@ class TargetedCellularAutomata(CellularAutomata):
             if change not in self.reversionValues:
                 self.state[i] = oldState[i]
 
-
-def Sym(n):
+def getX(n):
     """
-    Creates a set containing all permutations in the symmetric group $S_n$.
-
-    Returns:
-        list: A set containing every permutation in $S_n$, in one-line notation.
+    Gets a list of all possible x_i in order, from 0 to n-1.
     """
-    return set(permutations([i for i in range(n+1)]))
+    return [BooleanFunction([[i]], n) for i in range(0, n)]
 
-
-def gen_atomic(n, pos):
-        prod = BooleanFunction([[FieldFunction.GF2.ONE]], n)
+def _gen_atomic(n, pos):
+        prod = BooleanFunction([[GF2.ONE]], n)
         for position, val in enumerate(_dec_to_bin(pos, n)):
             if val == 1:
                 f = BooleanFunction([[position]], n)
                 prod *= f
             else:
-                f = BooleanFunction([[position], [FieldFunction.GF2.ONE]], n)
+                f = BooleanFunction([[position], [GF2.ONE]], n)
                 prod *= f
-        if prod.tableform[pos] != FieldFunction.GF2.ONE:
+        if prod.tableform[pos] != GF2.ONE:
            raise BaseException("Bad things happened!")
         return prod
+
+def _GF2_to_ints(lst):
+    return [1 if x == GF2.ONE else 0 for x in lst]
+
 
 def generate_function(rule_no, n): 
     endFunc = BooleanFunction([], n)
     binary_list = _dec_to_bin(rule_no, 2**n)
     for pos, val in enumerate(binary_list[::-1]):
         if val == 1:
-            endFunc += gen_atomic(n, pos)
+            endFunc += _gen_atomic(n, pos)
 
     return endFunc
 
@@ -528,21 +582,21 @@ def _delta(x,y):
     """
     return x != y
 
-def hausdorff_distance_point(a,B):
+def _hausdorff_distance_point(a,B):
     """
     Calculates the minimum distance between function a and the functions in the set B.
     """
     return min([a.hamming_distance(b) for b in B])
 
-def hausdorff_semidistance_set(A,B):
-    return max([hausdorff_distance_point(a,B) for a in A])
+def _hausdorff_semidistance_set(A,B):
+    return max([_hausdorff_distance_point(a,B) for a in A])
 
-def hausdorff_distance_sets(X,Y):
+def hausdorff_distance(X,Y):
     """
     Calculates the Hausdorff distance between two sets of boolean functions.
     """
-    HD1 = hausdorff_semidistance_set(X,Y)
-    HD2 = hausdorff_semidistance_set(Y,X)
+    HD1 = _hausdorff_semidistance_set(X,Y)
+    HD2 = _hausdorff_semidistance_set(Y,X)
     return max([HD1,HD2])
      
 def _dot_product(u,v):
@@ -563,6 +617,13 @@ def weight_k_vectors(k,nbits):
         vec_to_add = [int(y in j) for y in range(nbits)]
         vector_set_to_return.append(vec_to_add)
     return vector_set_to_return
+   
+def weight_k_or_less_vectors(k, nbits):
+    output = []
+    for i in range(0, k+1):
+        output += weight_k_vectors(i, nbits)
+
+    return output
     
 def _product(x):
     """

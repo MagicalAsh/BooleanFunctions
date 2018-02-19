@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name="booleantools",
-      version="0.2.1",
+      version="0.3.1",
       description="A library for boolean functions, functions on GF(4), and Cellular Automata",
       url=None,
       author="Wesley Rogers, Andrew Penland",
