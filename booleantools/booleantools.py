@@ -693,7 +693,7 @@ def siegenthaler_combination(f1,f2,new_var):
     f2_times_new_var = f2 * new_var
     return f1_times_new_var + f2_times_one + f2_times_new_var
 
-def generate_all_seigenthaler_combinations(func_list,new_var):
+def generate_all_siegenthaler_combinations(func_list,new_var):
     """
     Generates all of the possible Siegenthaler combinations
     of the given functions.
@@ -708,8 +708,8 @@ def generate_all_seigenthaler_combinations(func_list,new_var):
     for f1 in func_list:
         for f2 in func_list:
             f1f2siegenthalercombination = siegenthaler_combination(f1,f2,new_var)
-            all_sigenthaler_combinations.append(f1f2siegenthalercombination)
-    return all_seigenthaler_combinations
+            all_siegenthaler_combinations.append(f1f2siegenthalercombination)
+    return all_siegenthaler_combinations
         
 def min_nonzero_dist(poly1, classA):
     """
