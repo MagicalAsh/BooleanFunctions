@@ -1,6 +1,3 @@
-import sys
-sys.path.append("..")
-
 import booleantools as bt
 import json
 import ast
@@ -9,12 +6,12 @@ from itertools import permutations
 from booleantools import BooleanFunction
 
 def main():
-    permset = list(permutations([0,1,2,3,4]))
+    permset = Sym(5)
     f_set = []
     with open("in/all", "r") as file:
         for line in file:
             f = BooleanFunction(ast.literal_eval(line), 5)
-            f_set.extend(bt.perms_orbit_polynomial(permset, f))
+            f_set.extend(bt.orbit_polynomial(permset, f))
     
     #Split f_set into 20 parts
     n = len(f_set) // 20
