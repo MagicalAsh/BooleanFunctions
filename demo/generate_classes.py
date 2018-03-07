@@ -1,8 +1,7 @@
 from booleantools import BooleanFunction
 import booleantools as bt
 import itertools
-import queue
-import threading
+import multiprocessing as mp
 import json
 
 # linear part + quadratic part
@@ -20,7 +19,7 @@ def reduce_classes(func_list):
             if f in g:
                 in_one = True
         if in_one == False:
-            class_list.append(f.get_class())
+            class_list.append(f.get_orbit())
     return class_list
 
 def powerset(iterable):
@@ -43,9 +42,9 @@ def main():
     
     print(len(f_list))
     chunked = [f_list[i:i+500] for i in range(0, len(f_list), 500)]         
-    que = queue.Queue()
+    que = mp.Queue()
     for lst in chunked:
-        thred = threading.Thread(target=analyze_polys, args=(lst, que))
+        thred = mp.Process(target=analyze_polys, args=(lst, que))
         thred.start()
     
     noneCnt = 0
