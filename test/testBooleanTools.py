@@ -1,11 +1,9 @@
-import sys
-sys.path.append("..")
-
 import booleantools as bt
 import unittest
 
 r30 = bt.BooleanFunction([[0],[1],[2],[1,2]], 3)
 r90 = bt.BooleanFunction([[0],[2]], 3)
+x = bt.getX(5)
 
 class BTUnitTest(unittest.TestCase):
     
@@ -22,12 +20,12 @@ class BTUnitTest(unittest.TestCase):
 
     def test_eval(self):
         r30p1 = bt.BooleanFunction([[0],[1],[2],[1,2],[]], 3)
-        self.assertEqual(r30(1,0,0), 1)
-        self.assertEqual(r30(0,0,0), 0)
-        self.assertEqual(r30p1(0,0,0), 1)
+        self.assertEqual(r30(1,0,0), bt.GF2.get(1))
+        self.assertEqual(r30(0,0,0), bt.GF2.get(0))
+        self.assertEqual(r30p1(0,0,0), bt.GF2.get(1))
 
-        self.assertEqual(r90(1,0,1), 0)
-        self.assertEqual(r90(1,1,0), 1)
+        self.assertEqual(r90(1,0,1), bt.GF2.get(0))
+        self.assertEqual(r90(1,1,0), bt.GF2.get(1))
 
     def test_perm(self):
         self.assertEqual(r30.apply_permutation([0,1,2]), r30)
@@ -61,17 +59,26 @@ class BTUnitTest(unittest.TestCase):
         self.assertFalse(r30.is_k_resilient())
         self.assertTrue(r90.is_k_resilient())
         self.assertFalse(r90.is_k_resilient(k=2))
-
-    def test_FSM(self):
-        fsm = bt.FiniteStateMachine(r30)
-        self.assertEqual(fsm.adjMatr[0][0], 0)
-        self.assertEqual(fsm.adjMatr[3][0], None)
-
-    def test_CA(self):
-        ca = bt.CellularAutomata(r30, [0,1,1,0,0])
-        ca.update()
-        self.assertEqual(ca.state[1], 1)
-        self.assertEqual(ca.get_column(1), [1,1])
+    
+    def test_hausdorff_dist(self):
+        r30_class = r30.get_orbit()
+        r90_class = r90.get_orbit()
+        self.assertEqual(bt.hausdorff_distance(r30_class, r90_class), 2)
+    
+    def test_mult(self):
+        prod = bt.BooleanFunction([[0],[2],[0,1],[0,1,2]], 3)
+        self.assertEqual(prod, r30*r90)
+    
+    def test_generate_function(self):
+        new_r30 = bt.generate_function(30, 3)
+        new_r90 = bt.generate_function(90, 3)
+        self.assertEqual(r30, new_r30)
+        self.assertEqual(r90, new_r90)
+    
+    def test_siegenthaler(self):
+        expected_comb = bt.BooleanFunction([[0], [1],[2],[1,2],[1,3],[1,2,3]], 4)
+        got = bt.siegenthaler_combination(r90, r30, x[3])
+        self.assertEqual(expected_comb, got)
 
 if __name__ == "__main__":
     unittest.main()
