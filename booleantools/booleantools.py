@@ -336,7 +336,7 @@ class BooleanFunction(FieldFunction):
         self.tableform = rule_table
         
     def __hash__(self):
-        return _bin_to_dec(self.tableform)
+        return _bin_to_dec(_GF2_to_ints(self.tableform))
     
 
 def getX(n, field=GF2):
@@ -344,9 +344,9 @@ def getX(n, field=GF2):
     Gets a list of all possible x_i in order, from 0 to n-1.
     """
     if field == GF2:
-        return [BooleanFunction([[i]], n) for i in range(0, n)]
+        return [BooleanFunction([[i]], i+1) for i in range(0, n)]
     else:
-        return [FieldFunction([[i]], n, field) for i in range(0, n)]
+        return [FieldFunction([[i]], i+1, field) for i in range(0, n)]
 
 def _gen_atomic(n, pos):
         prod = BooleanFunction([[GF2.get(1)]], n)
