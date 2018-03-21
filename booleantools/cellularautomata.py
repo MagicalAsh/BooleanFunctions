@@ -1,3 +1,5 @@
+import copy
+
 class CellularAutomata:
     """
     A class representing a basic cellular automata using a boolean function as a rule.

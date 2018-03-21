@@ -1,4 +1,5 @@
 import copy
+import fields
 from enum import Enum
 from functools import reduce
 from itertools import combinations,permutations
@@ -14,17 +15,7 @@ def Sym(n):
     """
     return list(permutations([i for i in range(n)]))
 
-class GF2(Enum):
-    """
-    Represents the Finite Field $F_2$ with proper addition and multiplication.
-    """
-    ZERO = 0
-    ONE = 1
-    def __add__(a, b):
-        return GF2((a.value + b.value) % 2)
-
-    def __mul__(a, b):
-        return GF2(a.value * b.value)
+GF2 = fields.PrimeField(2)
 
 class FieldFunction:
     """
@@ -40,15 +31,12 @@ class FieldFunction:
     def __call__(self, *args):
         args = list(args)
         for pos, val in enumerate(args): #Simplification for inputs
-            if val == 1:
-                args[pos] = self.field.ONE
-            elif val == 0:
-                args[pos] = self.field.ZERO
-
-        value = self.field.ZERO
+            args[pos] = self.field.get(val)
+        
+        value = self.field.get(0)
         for monomial in self.listform:
             if monomial not in self.field:
-                prod = self.field.ONE
+                prod = self.field.get(1)
                 for var in monomial:
                     if var not in self.field:
                         prod *= args[var]
@@ -91,17 +79,24 @@ class FieldFunction:
     def __add__(a, b):
         if a.field != b.field:
             raise ValueError("Summands from different fields.")
-        return FieldFunction(a.listform + b.listform, max(a.n, b.n), a.field)
+        if isinstance(b, fields.PrimeField._FieldElement):
+            return FieldFunction(a.listform + [[b]], a.n, a.field)
+        else:
+            return FieldFunction(a.listform + b.listform, max(a.n, b.n), a.field)
 
     def __mul__(a, b):
         if a.field != b.field:
             raise ValueError("Multiplicands are not from the same field.")
-
-        out = []
-        for monomial in a.listform:
-            out += [monomial + monomial_b for monomial_b in b.listform]
         
-        return FieldFunction(out, max(a.n, b.n), a.field)
+        if isinstance(b, fields.PrimeField._FieldElement):
+            out = [monomial + [b] for monomial in a.listform]
+            return FieldFunction(out, a.n, a.field)
+        else:
+            out = []
+            for monomial in a.listform:
+                out += [monomial + monomial_b for monomial_b in b.listform]
+        
+            return FieldFunction(out, max(a.n, b.n), a.field)
 
     
     def tex_str(self, math_mode=False):
@@ -134,7 +129,7 @@ class FieldFunction:
 
     def __reduce(self):
         for i in range(len(self.listform)):
-            self.listform[i] = [val for val in self.listform[i] if val != self.field.ONE]
+            self.listform[i] = [val for val in self.listform[i] if val != self.field.get(1)]
 
 
 class BooleanFunction(FieldFunction):
@@ -344,27 +339,30 @@ class BooleanFunction(FieldFunction):
         return _bin_to_dec(self.tableform)
     
 
-def getX(n):
+def getX(n, field=GF2):
     """
     Gets a list of all possible x_i in order, from 0 to n-1.
     """
-    return [BooleanFunction([[i]], n) for i in range(0, n)]
+    if field == GF2:
+        return [BooleanFunction([[i]], n) for i in range(0, n)]
+    else:
+        return [FieldFunction([[i]], n, field) for i in range(0, n)]
 
 def _gen_atomic(n, pos):
-        prod = BooleanFunction([[GF2.ONE]], n)
+        prod = BooleanFunction([[GF2.get(1)]], n)
         for position, val in enumerate(_dec_to_bin(pos, n)):
             if val == 1:
                 f = BooleanFunction([[position]], n)
                 prod *= f
             else:
-                f = BooleanFunction([[position], [GF2.ONE]], n)
+                f = BooleanFunction([[position], [GF2.get(1)]], n)
                 prod *= f
-        if prod.tableform[pos] != GF2.ONE:
+        if prod.tableform[pos] != GF2.get(1):
            raise BaseException("_gen_atomic failed! Please report on Github!")
         return prod
 
 def _GF2_to_ints(lst):
-    return [1 if x == GF2.ONE else 0 for x in lst]
+    return [1 if x == GF2.get(1) else 0 for x in lst]
 
 
 def generate_function(rule_no, n): 

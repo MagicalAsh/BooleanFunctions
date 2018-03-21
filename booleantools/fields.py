@@ -1,3 +1,53 @@
+from enum import Enum
+import math
+
+class PrimeField:
+    """
+    Represents a finite field of prime order.
+    """
+    class _FieldElement:
+        def __init__(self, value, field):
+            self.value = value
+            self.field = field
+
+        def __add__(a, b):
+            if a.field == b.field:
+                return a.field.get((a.value+b.value) % a.field.order)
+
+        def __mul__(a, b):
+            if a.field == b.field:
+                return a.field.get((a.value*b.value) % a.field.order)
+
+        def __repr__(self):
+            return "<%d>" % self.value
+        
+        def __str__(self):
+            return "[%d]" % self.value
+
+    def __init__(self, order):
+        if not _isprime(order):
+            raise ValueError("order is not prime")
+
+        self.order = order
+        self.elements = {ele : PrimeField._FieldElement(ele, self) for ele in range(0, order)}
+        
+    def get(self, element):
+        if element > self.order or element < 0:
+            raise ValueError("Element must be greater than zero and less than order")
+        return self.elements[element]
+    
+    def __eq__(a, b):
+        return True if a.order == b.order else False
+    
+    def __contains__(self, elem):
+        if not isinstance(elem, PrimeField._FieldElement):
+            return False
+
+        if elem.field == self:
+            return True
+
+        return False
+
 class GF4(Enum):
     """
     Represents the Galois Field GF(4) with proper addition and multiplication.
@@ -19,3 +69,18 @@ class GF4(Enum):
             b_val = z_mod_3[b]
             final = flipped_z3[(a_val + b_val) % 3]
             return final
+
+def _isprime(n):
+    if n < 2:
+        return False
+    elif n == 2 or n == 3:
+        return True
+    elif n % 2 == 0 or n % 3 == 0:
+        return False
+    
+    for i in range(5, int(math.sqrt(n))+1, 6):
+        if n % i == 0 or n % (i+2) == 0:
+            return False
+
+    return True
+
