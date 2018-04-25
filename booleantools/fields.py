@@ -1,5 +1,5 @@
-from enum import Enum
-import math
+from enum import Enum as _Enum
+import math as _math
 
 class PrimeField:
     """
@@ -48,7 +48,7 @@ class PrimeField:
 
         return False
 
-class GF4(Enum):
+class GF4(_Enum):
     """
     Represents the Galois Field GF(4) with proper addition and multiplication.
     """
@@ -78,7 +78,7 @@ def _isprime(n):
     elif n % 2 == 0 or n % 3 == 0:
         return False
     
-    for i in range(5, int(math.sqrt(n))+1, 6):
+    for i in range(5, int(_math.sqrt(n))+1, 6):
         if n % i == 0 or n % (i+2) == 0:
             return False
 

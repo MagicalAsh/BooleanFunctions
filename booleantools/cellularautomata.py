@@ -1,4 +1,5 @@
-import copy
+from enum import Enum as _Enum
+import copy as _copy
 
 class CellularAutomata:
     """
@@ -23,7 +24,7 @@ class CellularAutomata:
         Updates this Cellular Automata to the next state, and appends the old state to the time
         attribute.
         """
-        self.time.append(copy.deepcopy(self.state))
+        self.time.append(_copy.deepcopy(self.state))
         out = []
         for i in range(0, len(self.state)):
             start = i - (self.func.n//2)
@@ -56,7 +57,7 @@ class CellularAutomata:
         """
         return [row[col] for row in self.time]
 
-class TargetTransitions(Enum):
+class TargetTransitions(_Enum):
         """
             An Enum representing which states under which a target CA is allowed to change state.
         """

@@ -1,10 +1,7 @@
-import copy
-import fields
-from enum import Enum
-from functools import reduce
-from itertools import combinations,permutations
-from math import log
-from copy import deepcopy
+import copy as _copy
+import booleantools.fields as _fields
+from itertools import combinations as _combs
+from itertools import permutations as _perms
 
 def Sym(n):
     """
@@ -13,9 +10,9 @@ def Sym(n):
     Returns:
         list: A set containing every permutation in $S_n$, in one-line notation.
     """
-    return list(permutations([i for i in range(n)]))
+    return list(_perms([i for i in range(n)]))
 
-GF2 = fields.PrimeField(2)
+GF2 = _fields.PrimeField(2)
 
 class FieldFunction:
     """
@@ -30,6 +27,11 @@ class FieldFunction:
 
     def __call__(self, *args):
         args = list(args)
+        if len(args) == 1 and hasattr(args[0], '__getitem__'):
+            args = args[0]
+        elif len(args) == 1 and isinstance(args[0], int):
+            args = _dec_to_base(args[0], self.n, self.field.order)
+
         for pos, val in enumerate(args): #Simplification for inputs
             args[pos] = self.field.get(val)
         
@@ -78,8 +80,8 @@ class FieldFunction:
 
     def __add__(a, b):
         if a.field != b.field:
-            raise ValueError("Summands from different fields.")
-        if isinstance(b, fields.PrimeField._FieldElement):
+            raise ValueError("Summands from different _fields.")
+        if isinstance(b, _fields.PrimeField._FieldElement):
             return FieldFunction(a.listform + [[b]], a.n, a.field)
         else:
             return FieldFunction(a.listform + b.listform, max(a.n, b.n), a.field)
@@ -88,7 +90,7 @@ class FieldFunction:
         if a.field != b.field:
             raise ValueError("Multiplicands are not from the same field.")
         
-        if isinstance(b, fields.PrimeField._FieldElement):
+        if isinstance(b, _fields.PrimeField._FieldElement):
             out = [monomial + [b] for monomial in a.listform]
             return FieldFunction(out, a.n, a.field)
         else:
@@ -148,16 +150,16 @@ class BooleanFunction(FieldFunction):
                      term in the list form.
         """
         super().__init__(listform, n, GF2)
-        copyList = []
+        _copyList = []
 
         #This is done for space efficiency. Basically reduces coefficient mod 2
         for i in listform:
-            if i not in copyList:
-                copyList.append(i)
+            if i not in _copyList:
+                _copyList.append(i)
             else:
-                copyList.remove(i)
+                _copyList.remove(i)
 
-        self.listform = copyList
+        self.listform = _copyList
         self.update_rule_table()
     
     def hamming_weight(self):
@@ -396,6 +398,21 @@ def _dec_to_bin(num,nbits):
             bin.append(0)
     return bin
 
+def _dec_to_base(num, nbits, base):
+    """
+    Creates a binary vector of length nbits from a number.
+    """
+    new_num = num
+    bin = []
+    for j in range(nbits):
+        current_bin_mark = base**(nbits-1-j)
+        if (new_num >= current_bin_mark):
+            bin.append(1)
+            new_num = new_num - current_bin_mark
+        else:
+            bin.append(0)
+    return bin
+
 def _delta(x,y):
     """
     Returns 1 if x and y differ, 0 otherwise.
@@ -432,7 +449,7 @@ def weight_k_vectors(k,nbits):
     """
     nums = range(nbits)
     vector_set_to_return = []
-    k_combinations = [list(x) for x in combinations(nums,k)]
+    k_combinations = [list(x) for x in _combs(nums,k)]
     for j in k_combinations:
         vec_to_add = [int(y in j) for y in range(nbits)]
         vector_set_to_return.append(vec_to_add)
