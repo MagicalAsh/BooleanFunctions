@@ -81,7 +81,7 @@ class FieldFunction:
 
     def __add__(a, b):
         if a.field != b.field:
-            raise ValueError("Summands from different _fields.")
+            raise ValueError("Summands from different fields.")
         if isinstance(b, _fields.PrimeField._FieldElement):
             return FieldFunction(a.listform + [[b]], a.n, a.field)
         else:
@@ -170,7 +170,7 @@ class BooleanFunction(FieldFunction):
             Returns:
                 int: The hamming weight of this function.
         """
-        return sum(_GF2_to_ints(self.tableform))
+        return sum(self.tableform)
         
     def hamming_distance(self, other):
         """
@@ -185,8 +185,8 @@ class BooleanFunction(FieldFunction):
         if hasattr(other, "__getitem__"): #If other is a list
             return [self.hamming_distance(f) for f in other]
         else: 
-            u = _GF2_to_ints(self.tableform)
-            v = _GF2_to_ints(other.tableform)
+            u = self.tableform
+            v = other.tableform
             s = sum([_delta(u[k],v[k]) for k in range(len(u))])
             return s
         
@@ -197,7 +197,7 @@ class BooleanFunction(FieldFunction):
         Returns:
             list: A list containing the walsh transform of this function.
         """
-        f = _GF2_to_ints(self.tableform)
+        f = self.tableform
         nbits = self.n
         vecs = [(_dec_to_bin(x,nbits), x) for x in range(len(f))]
         def Sf(w):
@@ -224,7 +224,7 @@ class BooleanFunction(FieldFunction):
         # Returns
             bool: True if balanced, False otherwise.
         """
-        f = _GF2_to_ints(self.tableform)
+        f = self.tableform
         return sum(f) == len(f)/2
 
     def is_correlation_immune(self,k=1):
@@ -338,7 +338,7 @@ class BooleanFunction(FieldFunction):
         self.tableform = rule_table
         
     def __hash__(self):
-        return _bin_to_dec(_GF2_to_ints(self.tableform))
+        return _bin_to_dec(self.tableform)
     
 
 def getX(n, field=GF2):
@@ -359,7 +359,7 @@ def _gen_atomic(n, pos):
             else:
                 f = BooleanFunction([[position], [GF2.get(1)]], n)
                 prod *= f
-        if prod.tableform[pos] != GF2.get(1):
+        if prod.tableform[pos] != 1:
            raise BaseException("_gen_atomic failed! Please report on Github!")
         return prod
 

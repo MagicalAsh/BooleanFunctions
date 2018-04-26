@@ -20,12 +20,12 @@ class BTUnitTest(unittest.TestCase):
 
     def test_eval(self):
         r30p1 = bt.BooleanFunction([[0],[1],[2],[1,2],[]], 3)
-        self.assertEqual(r30(1,0,0), bt.GF2.get(1))
-        self.assertEqual(r30(0,0,0), bt.GF2.get(0))
-        self.assertEqual(r30p1(0,0,0), bt.GF2.get(1))
+        self.assertEqual(r30(1,0,0), 1)
+        self.assertEqual(r30(0,0,0), 0)
+        self.assertEqual(r30p1(0,0,0), 1)
 
-        self.assertEqual(r90(1,0,1), bt.GF2.get(0))
-        self.assertEqual(r90(1,1,0), bt.GF2.get(1))
+        self.assertEqual(r90(1,0,1), 0)
+        self.assertEqual(r90(1,1,0), 1)
 
     def test_perm(self):
         self.assertEqual(r30.apply_permutation([0,1,2]), r30)
