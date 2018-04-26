@@ -36,6 +36,12 @@ class PrimeField:
             raise ValueError("Element must be greater than zero and less than order")
         return self.elements[element]
     
+    def value_of(self, element):
+        if element not in self:
+            raise ValueError("Element is not of this field")
+        
+        return element.value
+
     def __eq__(a, b):
         return True if a.order == b.order else False
     

@@ -47,7 +47,8 @@ class FieldFunction:
                 value += prod
             else:
                 value += monomial
-        return value
+        
+        return self.field.value_of(value)
         
     
     def apply_permutation(self, perm):
@@ -271,8 +272,7 @@ class BooleanFunction(FieldFunction):
         Returns:
             A list containing all functions in the orbit of this function.
         """
-        perms = perms if perms is not None else Sym(self.n)
-        return orbit_polynomial(perms, self)
+        return orbit_polynomial(self, perms)
      
     def nonlinearity(self):
         """
@@ -491,7 +491,7 @@ def duplicate_free_list_polynomials(list_of_polys):
             outlist.append(poly)
     return outlist
 
-def orbit_polynomial(permset,polynomial):
+def orbit_polynomial(polynomial, permset=None):
     """
         Orbits a polynomial using the given permutation set.
         
@@ -501,16 +501,18 @@ def orbit_polynomial(permset,polynomial):
         Returns:
             A list of the polynomials created by the given orbits.
     """
+    if permset is None:
+        permset = Sym(polynomial.n)
     return duplicate_free_list_polynomials([polynomial.apply_permutation(i) for i in permset])
 
-def orbit_polynomial_list(permset,polynomial_list):
+def orbit_polynomial_list(polynomial_list, permset=None):
     """
     Orbits a list of polynomials using the given permutation set.
     
     Returns:
         A list of lists of the polynomials created by the given orbits.
     """
-    return [orbit_polynomial(permset,polynomial) for polynomial in polynomial_list]
+    return [orbit_polynomial(polynomial, permset) for polynomial in polynomial_list]
                 
 
 def siegenthaler_combination(f1,f2,new_var):
